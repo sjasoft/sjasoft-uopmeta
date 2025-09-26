@@ -7,7 +7,9 @@ authors = [
     { name = "Samantha Atkins", email = "samantha@conceptwareinc.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic==1.10.7",
+]
 
 [project.scripts]
 sjasoft-uopmeta = "sjasoft.uopmeta:main"
@@ -19,6 +21,15 @@ package-dir = {"" = "src"}
 where = ["src"]
 namespaces = true
 
+[tool.uv.sources]
+sjasoft-utils = { path = "../sjasoft-utils" }
+
 [build-system]
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "sjasoft-utils",
+]
