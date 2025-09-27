@@ -477,18 +477,18 @@ def app_class(name, superclass, *attributes, description='',  abstract=False,
     for attribute in attributes:
         attribute.class_name = name
     return app_permissioned(name=name, superclass=superclass,
-                         description=description, is_abstrat=abstract,
-                         attributes=attributes,
-                         **field_values)
+                            description=description, is_abstrat=abstract,  permissions=AppPermissions(),
+                            attributes=attributes,
+                            **field_values)
 
 def sys_class(name, superclass, *attributes, description='',  abstract=False,
               **field_values):
     for attribute in attributes:
         attribute.class_name = name
     return sys_permissioned(name=name, superclass=superclass,
-                         description=description, is_abstrat=abstract,
-                         attributes=attributes,
-                         **field_values)
+                            description=description, is_abstrat=abstract,
+                            attributes=attributes,
+                            **field_values)
 
 class BaseSchema(BaseModel):
     name: str
@@ -514,10 +514,9 @@ class Schema(BaseSchema):
         name='uop_core',
         classes = [root,
                    sys_class('DescribedComponent', 'PersistentObject',
-                                  app_attr('createdAt', 'epoch'),
-                                  app_attr('description', 'string'),
-                                  description='root of all described content', abstract=True),
-                   ]
+                             app_attr('createdAt', 'epoch'),
+                             app_attr('description', 'string'),
+                             description='root of all described content', abstract=True)]
 
         )
 
