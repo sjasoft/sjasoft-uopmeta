@@ -931,37 +931,6 @@ class Associated(BaseModel):
         if dbi:
             dbi.meta_insert(self.dict())
 
-class Tagged(Associated):
-    kind='tagged'
-    @classmethod
-    def make(cls, group_id, object_id):
-        return cls(assoc_id=group_id, object_id=object_id)
-
-    @property
-    def tag_id(self):
-        return self.assoc_id
-
-    @classmethod
-    def create_random(cls):
-        cls(name=f'tag_{random.randint(10000, 99999)}')
-
-
-class Grouped(Associated):
-    kind = "grouped"
-
-    @classmethod
-    def make(cls, group_id, object_id):
-        return cls(assoc_id=group_id, object_id=object_id)
-
-    @property
-    def contained_group(self):
-        return oid_class(self.object_id) is None
-
-
-    @property
-    def group_id(self):
-        return self.assoc_id
-
 
 
 class Related(Associated):
@@ -1221,8 +1190,8 @@ class OrQuery(CompositeQuery):
 
 
 class WorkingContext(MetaContext):
-    tagged: List[Tagged] = []
-    grouped: List[Grouped] = []
+    tagged: List[Related] = []
+    grouped: List[Related] = []
     related: List[Related] = []
     instances: list = []
     persist_to: Any = None
@@ -1326,20 +1295,24 @@ class WorkingContext(MetaContext):
         return first, random.choice(rest)
 
     def random_tagged(self, tag_id=None, obj_id=None):
-        assoc = Tagged(
-            assoc_id= tag_id or self.random_tag().id,
-            object_id= obj_id or self.random_instance()['id']
+        role_id = self.roles.by_name['tag_applies']
+        assoc = Related(
+            assoc_id= role_id,
+            object_id= obj_id or self.random_instance()['id'],
+            subject_id= tag_id or self.random_tag().id
         )
         assoc.persist(self.persist_to)
         return assoc
 
+
     def random_grouped(self, group_id=None, obj_id=None):
-        assoc =  Grouped(
-            assoc_id= group_id or self.random_group().id,
-            object_id= obj_id or self.random_instance()['id']
+        role_id = self.roles.by_name['group_contains']
+        assoc =  Related(
+            assoc_id= role_id,
+            object_id= obj_id or self.random_instance()['id'],
+            subject_id= group_id or self.random_group().id
         )
         assoc.persist(self.persist_to)
-        return assoc
 
 
     def random_related(self, role_id=None, object_id=None,
@@ -1397,8 +1370,6 @@ kind_map = dict(
     roles=MetaRole,
     tags=MetaTag,
     queries=MetaQuery,
-    tagged=Tagged,
-    grouped=Grouped,
     related=Related,
     users=User,
     databases=Database,
@@ -1420,8 +1391,6 @@ def create_new(kind):
     return cls.create_random()
 
 secondary_indices = dict(
-    tagged = Tagged.secondary_indices('tagged'),
-    grouped = Grouped.secondary_indices('grouped'),
     related = Related.secondary_indices('related')
 )
 
