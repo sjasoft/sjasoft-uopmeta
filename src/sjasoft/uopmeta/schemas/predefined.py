@@ -1,8 +1,13 @@
 from sjasoft.uopmeta.schemas import meta
-from sjasoft.uopmeta.schemas.meta import Schema
+from sjasoft.uopmeta.schemas.meta import Schema, MetaRole
 
 pkm_schema = Schema(
     name = 'pkm_schema',
+    roles = [
+        MetaRole(name='group_contains', reverse_name='group_contains*'),
+        MetaRole(name='tag_applies', reverse_name='tag_applies*'),
+        MetaRole(name='contains_group', reverse_name='contains_group*'),
+    ],
     classes = [
         meta.app_class('File', 'DescribedComponent',
                        meta.app_attr('path', 'string', required=True)),

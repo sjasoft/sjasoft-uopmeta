@@ -400,11 +400,7 @@ class MetaRole(NameWithId):
     kind = 'roles'
     reverse_name: str = ''
 
-    @root_validator
-    def validate(cls, values):
-        if not values.get('reverse_name'):
-            values['reverse_name'] = f'{values.get("name")}*'
-        return values
+
 
     @classmethod
     def create_random(cls):
@@ -953,10 +949,16 @@ class Related(Associated):
     @property
     def role_id(self):
         return self.assoc_id
+    
+    def contains_object(self, object_id):
+        return self.object_id == object_id or self.subject_id == object_id
+    
+    def contains_class(self, class_id):
+        return oid_class(self.object_id) == class_id or oid_class(self.subject_id) == class_id
+    
 
     def contains_deleted(self, deleted_objects, deleted_classes):
-        checker = contains_deleted_fn(deleted_objects, deleted_classes)
-        return checker(self.object_id) or checker(self.subject_id)
+        return any([self.contains_object(obj) for obj in deleted_objects]) or any([self.contains_class(cls) for cls in deleted_classes])
 
     def hash_string(self):
         return f'{super().hash_string()}:{self.subject_id}'
@@ -1295,7 +1297,7 @@ class WorkingContext(MetaContext):
         return first, random.choice(rest)
 
     def random_tagged(self, tag_id=None, obj_id=None):
-        role_id = self.roles.by_name['tag_applies']
+        role_id = self.roles.name_to_id('tag_applies')
         assoc = Related(
             assoc_id= role_id,
             object_id= obj_id or self.random_instance()['id'],
@@ -1306,14 +1308,14 @@ class WorkingContext(MetaContext):
 
 
     def random_grouped(self, group_id=None, obj_id=None):
-        role_id = self.roles.by_name['group_contains']
+        role_id = self.roles.name_to_id('group_contains')
         assoc =  Related(
             assoc_id= role_id,
             object_id= obj_id or self.random_instance()['id'],
             subject_id= group_id or self.random_group().id
         )
         assoc.persist(self.persist_to)
-
+        return assoc
 
     def random_related(self, role_id=None, object_id=None,
                        subject_id=None):
