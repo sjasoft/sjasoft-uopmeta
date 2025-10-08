@@ -145,7 +145,6 @@ class Tenant(BaseModel):
         make_oid('')), description='primary id ')
     name: str
     base_collections: Dict[str, str]   # kind -> collection_name
-    cls_extensions: Dict[str, str]  # cls.id -> extension collection_name
 
 class ByNameId(BaseModel):
     by_id: dict = {}
