@@ -7,6 +7,7 @@ pkm_schema = Schema(
         MetaRole(name='group_contains', reverse_name='group_contains*'),
         MetaRole(name='tag_applies', reverse_name='tag_applies*'),
         MetaRole(name='contains_group', reverse_name='contains_group*'),
+        MetaRole(name='has_user', reverse_name='in_tenant'),
     ],
     classes = [
         meta.app_class('File', 'DescribedComponent',
