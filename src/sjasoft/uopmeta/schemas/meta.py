@@ -1362,6 +1362,7 @@ def cls_data(name, superclass, *attributes, description='', abstract=False,
 
 class MetaChanges(BaseModel):
     timestamp: float
+    tenant_id: str
     changes: dict
 
 kind_map = dict(
