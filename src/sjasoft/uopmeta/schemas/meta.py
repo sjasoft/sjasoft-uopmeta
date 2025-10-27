@@ -10,20 +10,25 @@ from sjasoft.utils.string import after
 import random
 from functools import partial
 from collections import defaultdict
+
 make_app_id = lambda: index.make_id(48)
+
 
 def legal_chars(s):
     return all([(x in index.radix.alphabet) for x in s])
+
 
 get_field = lambda d, f: d.get(f) if isinstance(d, dict) else getattr(d, f, None)
 
 as_dict = lambda d: d if isinstance(d, dict) else d.dict()
 as_object = lambda d: d if isinstance(d, BaseModel) else DictObject(d)
 
+
 def as_tuple(d):
     if isinstance(d, tuple):
         return d
     return tuple(as_dict(d).items())
+
 
 def dict_or_tuple(d):
     if isinstance(d, dict):
@@ -32,38 +37,42 @@ def dict_or_tuple(d):
         return d
     return as_dict(d)
 
+
 base_types = {
-    'uuid': None,
-    'int': None,
-    'long': None,
-    'float': None,
-    'string': None,
-    'datetime': None,
-    'blob': None}
+    "uuid": None,
+    "int": None,
+    "long": None,
+    "float": None,
+    "string": None,
+    "datetime": None,
+    "blob": None,
+}
+
 
 def pydantic_uop_type(pydantic_type, outer_type):
-    if (outer_type != pydantic_type) and outer_type == 'List':
-        return 'json'
+    if (outer_type != pydantic_type) and outer_type == "List":
+        return "json"
     if isinstance(pydantic_type, str):
-        return 'str'
+        return "str"
     if issubclass(pydantic_type, BaseModel):
-        return 'json'
+        return "json"
     if isinstance(pydantic_type, type):
         if pydantic_type == str:
-            return 'str'
+            return "str"
         elif pydantic_type == int:
-            return 'int'
+            return "int"
         elif pydantic_type == float:
-            return 'float'
+            return "float"
         elif pydantic_type == bool:
-            return 'bool'
-        
-    return 'json'
+            return "bool"
+
+    return "json"
+
 
 def extract_uop_field_types(model):
     fields = {}
     for field_name, field_info in model.__fields__.items():
-        if field_name == 'kind':
+        if field_name == "kind":
             continue
         field_type = field_info.type_
         uop_type = pydantic_uop_type(field_type, field_info.outer_type_)
@@ -75,10 +84,12 @@ def random_attribute_type():
     type_list = list(base_types.keys())
     return random.choice(type_list[:-1])
 
+
 def as_dict(data):
     if isinstance(data, BaseModel):
         return data.dict()
     return data
+
 
 class OID(BaseModel):
     class_id: Optional[str]
@@ -91,7 +102,7 @@ class OID(BaseModel):
         elif isinstance(sequence, str):
             parts = sequence.split(oid_sep)
             if parts and len(parts) < 3:
-                args = dict(zip(('sequence', 'class_id'), parts[::-1]))
+                args = dict(zip(("sequence", "class_id"), parts[::-1]))
                 return cls(**args)
 
     @classmethod
@@ -103,7 +114,11 @@ class OID(BaseModel):
         return cls(sequence=index.make_id(32))
 
     def __str__(self):
-        return f'{self.class_id}{oid_sep}{self.sequence}' if self.class_id else self.sequence
+        return (
+            f"{self.class_id}{oid_sep}{self.sequence}"
+            if self.class_id
+            else self.sequence
+        )
 
 
 class MetaPermissions(BaseModel):
@@ -114,37 +129,42 @@ class MetaPermissions(BaseModel):
 
     @root_validator
     def adjust_perms(cle, values):
-        values['modifiable'] = values['deletable'] = False
-        if values['sys_defined']:
-            values['app_defined'] = False
-        elif values['app_defined']:
-            values['sys_defined'] = False
+        values["modifiable"] = values["deletable"] = False
+        if values["sys_defined"]:
+            values["app_defined"] = False
+        elif values["app_defined"]:
+            values["sys_defined"] = False
         else:
-            values['modifiable'] = values['deletable'] = True
+            values["modifiable"] = values["deletable"] = True
         return values
 
 
 class SystemPermissions(MetaPermissions):
-    sys_defined: bool =  True
+    sys_defined: bool = True
 
 
 class AppPermissions(MetaPermissions):
     app_defined = True
 
+
 class User(BaseModel):
-    id: str = Field(default_factory=lambda: str(
-        make_oid('')), description='primary id ')
+    id: str = Field(
+        default_factory=lambda: str(make_oid("")), description="primary id "
+    )
     name: str
-    email: str = ''
-    tenant_id: str = ''
+    email: str = ""
+    tenant_id: str = ""
     is_superuser: bool = False
     is_admin: bool = False
 
+
 class Tenant(BaseModel):
-    id: str = Field(default_factory=lambda: str(
-        make_oid('')), description='primary id ')
+    id: str = Field(
+        default_factory=lambda: str(make_oid("")), description="primary id "
+    )
     name: str
-    base_collections: Dict[str, str]   # kind -> collection_name
+    base_collections: Dict[str, str]  # kind -> collection_name
+
 
 class ByNameId(BaseModel):
     by_id: dict = {}
@@ -177,7 +197,7 @@ class ByNameId(BaseModel):
         return [self.name_to_id(n) for n in names]
 
     def is_named(self, item):
-        return hasattr(item, 'name') or item.get('name')
+        return hasattr(item, "name") or item.get("name")
 
     def add_item(self, item):
         self.by_id[item.id] = item
@@ -190,32 +210,29 @@ class ByNameId(BaseModel):
             self.by_name.pop(item.name, None)
 
 
-
 class NameWithId(BaseModel):
-    kind = ''
-    id: str = Field(default_factory=lambda: str(
-        make_oid('')), description='primary id ')
-    description: str = ''
+    kind = ""
+    id: str = Field(
+        default_factory=lambda: str(make_oid("")), description="primary id "
+    )
+    description: str = ""
     name: str = Field(...)
     permissions: MetaPermissions = Field(default_factory=MetaPermissions)
 
     def without_kind(self):
         data = self.dict()
-        data.pop('kind', None)
+        data.pop("kind", None)
         return data
 
     @classmethod
     def create_random(cls, **kwargs):
-        return cls(name='ChangeME!', **kwargs)
-
-
+        return cls(name="ChangeME!", **kwargs)
 
     def modifiable(self):
         return self.permissions.modifiable
 
     def deletable(self):
         return self.permissions.deletable
-
 
     def __hash__(self):
         return hash(self.id)
@@ -229,11 +246,13 @@ class NameWithId(BaseModel):
     def random_instance(self):
         pass
 
+
 class MetaAttribute(NameWithId):
-    kind = 'attributes'
+    kind = "attributes"
     type: str
     class_name: Optional[str] = Field(
-        None, description='name of class that defines this attribute')
+        None, description="name of class that defines this attribute"
+    )
     required: bool = False
 
     def default_value(self):
@@ -243,34 +262,33 @@ class MetaAttribute(NameWithId):
     @classmethod
     def random_attribute(cls, in_class_id=None):
         my_type = random_attribute_type()
-        name = f'attr_{random.randint(1000,9999)}'
-        args = {'type': my_type, 'name': name}
+        name = f"attr_{random.randint(1000, 9999)}"
+        args = {"type": my_type, "name": name}
         if in_class_id:
-            args['class_id'] = in_class_id
+            args["class_id"] = in_class_id
         return cls(**args)
-
 
     def get_changes(self, other, changes):
         super().get_changes(other, changes.attributes)
         if self.type != other.type:
-            changes.attributes.modified(self.id, dict(type = other.type))
+            changes.attributes.modified(self.id, dict(type=other.type))
 
     def random_instance(self, *args):
         return attribute_types[self.type].random_instance(*args)
 
 
 class MetaClass(NameWithId):
-    kind = 'classes'
-    superclass: str = Field(default='root', description='name of superclass')
-    attrs: Optional[List[str]] = Field(description='list of attribute ids')
+    kind = "classes"
+    superclass: str = Field(default="root", description="name of superclass")
+    attrs: Optional[List[str]] = Field(description="list of attribute ids")
     attributes: Optional[List[MetaAttribute]]
     short_form: Optional[List[str]]
-    instance_collection: str = ''
+    instance_collection: str = ""
     is_abstract: bool = False
     mandatory_attributes: List[str] = []
 
     @classmethod
-    def random_class(cls, super_name='PersistentObject'):
+    def random_class(cls, super_name="PersistentObject"):
         """
         Produce a random MetaClass.  This can be particularly useful
         during testing when there is a need to control things like
@@ -279,7 +297,7 @@ class MetaClass(NameWithId):
         :return:  the newly created MetaClass
         """
         num_attrs = random.randint(2, 8)
-        name = f'Class_{random.randint(1000, 9999)}'
+        name = f"Class_{random.randint(1000, 9999)}"
         attributes = [MetaAttribute.random_attribute() for _ in range(num_attrs)]
         return cls(superclass=super_name, name=name, attributes=attributes)
 
@@ -289,21 +307,27 @@ class MetaClass(NameWithId):
 
     @classmethod
     def root(cls):
-        return cls(id='r00t', name='PersistentObject', superclass='',
-                 attributes=[MetaAttribute(
-                     name='id', type='uuid', permissions=SystemPermissions())],
-                 description='root supperclass',
-                 permissions=SystemPermissions(),
-                 is_abstract=True)
+        return cls(
+            id="r00t",
+            name="PersistentObject",
+            superclass="",
+            attributes=[
+                MetaAttribute(name="id", type="uuid", permissions=SystemPermissions())
+            ],
+            description="root supperclass",
+            permissions=SystemPermissions(),
+            is_abstract=True,
+        )
 
     def attribute_column_spec(self):
-        """Extracts column spec of attribute name, type and default value 
+        """Extracts column spec of attribute name, type and default value
         for the attributes of the class."""
         pass
-    
+
     def get_changes(self, other, changes):
         super().get_changes(other, changes.classes)
         diffs = {}
+
         def if_diff(key):
             other_val = getattr(other, key)
             if getattr(self, key) != other_val:
@@ -319,20 +343,23 @@ class MetaClass(NameWithId):
                         if an_id not in attrs:
                             attrs.append(an_id)
                 if attrs != self.attrs:
-                    diffs['attrs'] = attrs
-
+                    diffs["attrs"] = attrs
 
         diff_attrs()
-        if_diff('superclass')
-        if_diff('short_form')
+        if_diff("superclass")
+        if_diff("short_form")
         if diffs:
             changes.classes.modify(self.id, diffs)
 
     def validate_instance(self, instance_dict):
         exceptions = []
-        missing_mandatory = [m for m in self.mandatory_attributes if m not in instance_dict]
+        missing_mandatory = [
+            m for m in self.mandatory_attributes if m not in instance_dict
+        ]
         if missing_mandatory:
-            exceptions.append(Exception(f'missing mandatory attributes: {missing_mandatory}'))
+            exceptions.append(
+                Exception(f"missing mandatory attributes: {missing_mandatory}")
+            )
         return (False, exceptions) if exceptions else (True, [])
 
     def default_attribute_values(self):
@@ -351,11 +378,11 @@ class MetaClass(NameWithId):
         # bad_names = [k for k in attr_values if k not in by_name]
         # if bad_names:
         #     raise Exception(f'attributes not in class {self.name}: {bad_names}')
-        if not 'id' in attr_values:
-            attr_values['id'] = make_oid(self.id)
+        if not "id" in attr_values:
+            attr_values["id"] = make_oid(self.id)
         if use_defaults:
             defaults = self.default_attribute_values()
-            for k,v in defaults.items():
+            for k, v in defaults.items():
                 if k not in attr_values:
                     attr_values[k] = v
 
@@ -363,61 +390,68 @@ class MetaClass(NameWithId):
         if valid:
             return attr_values
         else:
-            raise Exception(f'instance errors: {exceptions}')
+            raise Exception(f"instance errors: {exceptions}")
 
     def random_instance(self):
         instance = dict()
         for attr in self.attributes:
             k = attr.name
             args = []
-            if attr.type == 'uuid':
+            if attr.type == "uuid":
                 args.append(self.id)
 
             instance[k] = attr.random_instance(*args)
-        return self.make_instance(**instance) # ensure id
+        return self.make_instance(**instance)  # ensure id
 
-    def add_attribute(self, name, type, description='', required=False):
+    def add_attribute(self, name, type, description="", required=False):
         if self.attributes and self.permissions.modifiable:
             known = [a.name for a in self.attributes]
             if name in known:
-                raise Exception(f'Class {self.name} alnead contain an attribute named {name}')
-            attr = MetaAttribute(name=name, type=type, required=required, description=description,
-                                 class_name=self.name)
+                raise Exception(
+                    f"Class {self.name} alnead contain an attribute named {name}"
+                )
+            attr = MetaAttribute(
+                name=name,
+                type=type,
+                required=required,
+                description=description,
+                class_name=self.name,
+            )
             self.attrs.append(attr.id)
             self.attributes.append(attr)
         return attr
 
+
 class MetaTag(NameWithId):
-    kind = 'tags'
+    kind = "tags"
 
     @classmethod
     def create_random(cls):
-        return cls(name=f'tag_{random.randint(1000, 9999)}')
+        return cls(name=f"tag_{random.randint(1000, 9999)}")
 
 
 class MetaRole(NameWithId):
-    kind = 'roles'
-    reverse_name: str = ''
-
-
+    kind = "roles"
+    reverse_name: str = ""
 
     @classmethod
     def create_random(cls):
-        return cls(name=f'role_{random.randint(1000, 9999)}')
+        return cls(name=f"role_{random.randint(1000, 9999)}")
 
 
 class MetaGroup(NameWithId):
-    kind = 'groups'
-    contained_in: List[str] = Field(default=[], description='list of directly containing group names')
+    kind = "groups"
+    contained_in: List[str] = Field(
+        default=[], description="list of directly containing group names"
+    )
 
     @classmethod
     def create_random(cls):
-        return cls(name=f'group_{random.randint(1000, 9999)}')
+        return cls(name=f"group_{random.randint(1000, 9999)}")
 
 
 class QueryComponent(BaseModel):
-    kind = ''
-
+    kind = ""
 
     def safisfies(self, dbi, obj_ids=None):
         pass
@@ -434,7 +468,7 @@ class QueryComponent(BaseModel):
 
 
 class MetaQuery(NameWithId):
-    kind = 'query'
+    kind = "query"
     query: QueryComponent = None
 
     @classmethod
@@ -443,47 +477,70 @@ class MetaQuery(NameWithId):
             return data.to_dict()
         elif isinstance(data, dict):
             working = dict(data)
-            q = working['query']
+            q = working["query"]
             kind, k_data = first_kv(q)
             if isinstance(q, QueryComponent):
-                working['query'] = q.to_dict()
-            elif kind not in ('class', 'attr', 'tags', 'groups', 'related', 'and', 'or'):
-                raise Exception(f'{q} is not legal form of QueryComponent')
+                working["query"] = q.to_dict()
+            elif kind not in (
+                "class",
+                "attr",
+                "tags",
+                "groups",
+                "related",
+                "and",
+                "or",
+            ):
+                raise Exception(f"{q} is not legal form of QueryComponent")
             return working
 
     @classmethod
     def from_dict(cls, d):
         d_s = cls.standard_dict_form(d)
-        qc = qc_dict_to_component(d_s['query'])
-        d['query'] = qc
+        qc = qc_dict_to_component(d_s["query"])
+        d["query"] = qc
         return cls(**d)
 
     def to_dict(self):
         d = self.dict()
-        d['query'] = self.query.to_dict()
+        d["query"] = self.query.to_dict()
         return d
+
 
 sys_permissioned = partial(MetaClass, permissions=SystemPermissions())
 
 app_permissioned = partial(MetaClass, permissions=AppPermissions())
 
-def app_class(name, superclass, *attributes, description='',  abstract=False,
-              **field_values):
-    for attribute in attributes:
-        attribute.class_name = name
-    return app_permissioned(name=name, superclass=superclass,
-                            description=description, is_abstrat=abstract,  permissions=AppPermissions(),
-                            attributes=attributes,
-                            **field_values)
 
-def sys_class(name, superclass, *attributes, description='',  abstract=False,
-              **field_values):
+def app_class(
+    name, superclass, *attributes, description="", abstract=False, **field_values
+):
     for attribute in attributes:
         attribute.class_name = name
-    return sys_permissioned(name=name, superclass=superclass,
-                            description=description, is_abstrat=abstract,
-                            attributes=attributes,
-                            **field_values)
+    return app_permissioned(
+        name=name,
+        superclass=superclass,
+        description=description,
+        is_abstrat=abstract,
+        permissions=AppPermissions(),
+        attributes=attributes,
+        **field_values,
+    )
+
+
+def sys_class(
+    name, superclass, *attributes, description="", abstract=False, **field_values
+):
+    for attribute in attributes:
+        attribute.class_name = name
+    return sys_permissioned(
+        name=name,
+        superclass=superclass,
+        description=description,
+        is_abstrat=abstract,
+        attributes=attributes,
+        **field_values,
+    )
+
 
 class BaseSchema(BaseModel):
     name: str
@@ -494,58 +551,69 @@ class BaseSchema(BaseModel):
     groups: List[MetaGroup] = []
     queries: List[MetaQuery] = []
 
+
 class DBFormSchema(BaseSchema):
     uses_schemas: List[str] = []
     requires_schemas: List[str] = []
 
 
 class Schema(BaseSchema):
-    uses_schemas: List['Schema'] = []
-    requires_schemas: List['Schema'] = []
+    uses_schemas: List["Schema"] = []
+    requires_schemas: List["Schema"] = []
 
     @classmethod
     def core_schema(cls):
         return cls(
-        name='uop_core',
-        classes = [root,
-                   sys_class('DescribedComponent', 'PersistentObject',
-                             app_attr('createdAt', 'epoch'),
-                             app_attr('description', 'string'),
-                             description='root of all described content', abstract=True)]
-
+            name="uop_core",
+            classes=[
+                root,
+                sys_class(
+                    "DescribedComponent",
+                    "PersistentObject",
+                    app_attr("createdAt", "epoch"),
+                    app_attr("description", "string"),
+                    description="root of all described content",
+                    abstract=True,
+                ),
+            ],
         )
 
     @classmethod
     def schemas_from_db(cls, db_schemas: List[dict]):
         # shouldn't this be actually in uop.database?
-        db_form_schemas = {s['name']:DBFormSchema(**s) for s in db_schemas}
+        db_form_schemas = {s["name"]: DBFormSchema(**s) for s in db_schemas}
         schemas = {}
+
         def transformed(name):
             known = schemas.get(name)
             if not known:
-                db_schema:DBFormSchema = db_form_schemas.get(name)
+                db_schema: DBFormSchema = db_form_schemas.get(name)
                 if db_schema:
                     transform = dict(
-                        uses_schemas = [transformed(n) for n in db_schema.uses_schemas],
-                        requires_schemas = [transformed(n) for n in db_schema.requires_schemas])
+                        uses_schemas=[transformed(n) for n in db_schema.uses_schemas],
+                        requires_schemas=[
+                            transformed(n) for n in db_schema.requires_schemas
+                        ],
+                    )
                     data = db_schema.dict()
                     data.update(transform)
                     known = schemas[name] = cls(**data)
                 else:
-                    raise Exception(f'unknown schema named {name}')
+                    raise Exception(f"unknown schema named {name}")
             return known
 
-        transformed_schemas = [transformed(d['name']) for d in db_schemas]
+        transformed_schemas = [transformed(d["name"]) for d in db_schemas]
         return schemas
-
 
     def sub_schemas(self):
         subs = {}
+
         def add_subs(sub_list):
             for s in sub_list:
                 if s.name not in subs:
                     subs[s.name] = s
                     subs.update(s.sub_schemas())
+
         add_subs(self.uses_schemas)
         add_subs(self.requires_schemas)
         return subs
@@ -554,26 +622,27 @@ class Schema(BaseSchema):
         uses = [u.name for u in self.uses_schemas]
         requires = [r.name for r in self.requires_schemas]
         data = self.dict()
-        data['uses_schemas'] = uses
-        data['requires_schemas'] = requires
+        data["uses_schemas"] = uses
+        data["requires_schemas"] = requires
         return DBFormSchema(**data)
 
     @root_validator
     def root_validate(cls, values):
-        attr_map = {a.id: a for a in values['attributes']}
+        attr_map = {a.id: a for a in values["attributes"]}
 
-        for c in values['classes']:
+        for c in values["classes"]:
             for attr in c.attributes:
                 if attr.id not in attr_map:
                     attr_map[attr.id] = attr
             c.attrs = [a.id for a in c.attributes]
-        values['attributes'] = list(attr_map.values())
+        values["attributes"] = list(attr_map.values())
 
-        if not values['requires_schemas']:
-            if values['name'] != 'uop_core':
-                values['requires_schemas'] = [cls.core_schema()]
+        if not values["requires_schemas"]:
+            if values["name"] != "uop_core":
+                values["requires_schemas"] = [cls.core_schema()]
 
         return values
+
 
 class MetaContext(BaseModel):
     classes: ByNameId = ByNameId()
@@ -596,14 +665,12 @@ class MetaContext(BaseModel):
                     res[sid].add(cid)
             self.class_children = res
 
-
     def deep_copy(self):
         instance = self.__class__()
         for kind in kind_map:
             instance.load_objects(self.metas_of_kind(kind))
         instance.complete()
         return instance
-
 
     def metas_of_kind(self, kind):
         return list(self.by_id(kind).values())
@@ -631,17 +698,15 @@ class MetaContext(BaseModel):
     def name_to_id(self, kind):
         return self._by_name_id(kind).name_to_id
 
-
     def dict(self, *args, **kwargs):
-        excluded = kwargs.get('exclude') or set()
-        excluded.update({'group_children', 'class_children'})
-        kwargs['exclude'] = excluded
+        excluded = kwargs.get("exclude") or set()
+        excluded.update({"group_children", "class_children"})
+        kwargs["exclude"] = excluded
         return super().dict(*args, **kwargs)
 
     def load_objects(self, objects):
         for obj in objects:
             self.add(obj)
-
 
     @classmethod
     def from_kind_objects(cls, kind_map):
@@ -663,7 +728,8 @@ class MetaContext(BaseModel):
     @classmethod
     def from_schema(cls, schema: Schema):
         instance = cls()
-        def add_schema(a_schema:Schema):
+
+        def add_schema(a_schema: Schema):
             for c in a_schema.classes:
                 instance.add(MetaClass(**c.dict()))
             for attr in a_schema.attributes:
@@ -676,9 +742,11 @@ class MetaContext(BaseModel):
                 instance.add(MetaRole(**role.dict()))
             for query in a_schema.queries:
                 instance.add(MetaQuery(**query.dict()))
+
         def add_schemas(schema_list):
             for s in schema_list:
                 add_schema(s)
+
         add_schemas(schema.uses_schemas)
         # TODO uses_schemas needs to be more refined. could make derived schem of all needed
         add_schemas(schema.requires_schemas)
@@ -708,22 +776,19 @@ class MetaContext(BaseModel):
                     c_instance.get_changes(instance, changes)
                 else:
                     data = instance.dict()
-                    data.pop('kind', None)
+                    data.pop("kind", None)
                     change_kind.insert(data)
 
-        subschemas = a_schema.uses_schemas +  a_schema.requires_schemas
+        subschemas = a_schema.uses_schemas + a_schema.requires_schemas
         for sub in subschemas:
             self.gather_schema_changes(sub, changes)
 
-        handle_kind('attributes')
-        remaining = [k for k in meta_kinds if k != 'attributes']
+        handle_kind("attributes")
+        remaining = [k for k in meta_kinds if k != "attributes"]
         for kind in remaining:
             handle_kind(kind)
 
         class_mods = changes.classes.modified
-
-
-
 
     def complete_classes(self):
         """
@@ -732,9 +797,11 @@ class MetaContext(BaseModel):
         3) ensures self.attributes is filled in from attributes of classes
         """
         from collections import deque
+
         processed = set()
         by_name = self.classes.by_name
         attr_by_id = self.attributes.by_id
+
         def process_class(cls):
             c_attrs = deque()
             c_attributes = deque()
@@ -752,7 +819,6 @@ class MetaContext(BaseModel):
         for cls in self.classes.by_id.values():
             process_class(cls)
 
-
     def by_name_id(self, kind):
         return getattr(self, kind)
 
@@ -767,15 +833,14 @@ class MetaContext(BaseModel):
 
     def get_meta_named(self, kind, name):
         res = self.by_name(kind).get(name)
-        if (kind == 'roles') and not res:
-            named = self.by_name('roles')
-            if name.endswith('*'):
+        if (kind == "roles") and not res:
+            named = self.by_name("roles")
+            if name.endswith("*"):
                 return named.get(name[:-1])
             for v in named.values():
                 if v.reverse_name == name:
                     return v
         return res
-
 
     def add_many(self, objects: List[NameWithId]):
         for object in objects:
@@ -795,6 +860,7 @@ class MetaContext(BaseModel):
         by_name = self.groups.by_name
         name_id = lambda n: by_name[n].id
         group_kids = self.group_children
+
         def child_set(gid):
             known = group_kids.get(gid)
             if not known:
@@ -808,17 +874,18 @@ class MetaContext(BaseModel):
                 child_set(pid).add(cid)
 
     def subtags(self, tid):
-        by_id = self.by_id('tags')
+        by_id = self.by_id("tags")
         if tid in by_id:
-            name = self.by_id('tags')[tid].name + '.'
-            subnames = [n for n in self.by_name('tags').keys() if n.startswith(name)]
-            return [self.by_name('tags')[n].id for n in subnames]
+            name = self.by_id("tags")[tid].name + "."
+            subnames = [n for n in self.by_name("tags").keys() if n.startswith(name)]
+            return [self.by_name("tags")[n].id for n in subnames]
         return []
+
     def get_group_children(self, gid, recursive=True):
         children = self.group_children.get(gid)
         if children is None:
             children = set()
-            for group in self.metas_of_kind('groups'):
+            for group in self.metas_of_kind("groups"):
                 group_id = group.id
                 if group_id == gid:
                     continue
@@ -834,32 +901,36 @@ class MetaContext(BaseModel):
         Computes and returns ids of groups that are not yet parents or children of the given group
         :return: possible parent set
         """
-        group: MetaGroup = self.by_id('groups').get(gid)
+        group: MetaGroup = self.by_id("groups").get(gid)
         children = set(self.get_group_children(gid))
-        all_groups = set(self.by_id('groups').keys())
+        all_groups = set(self.by_id("groups").keys())
         all_groups.discard(gid)
         return all_groups - (children | set(group.contained_in))
 
     def subgroups(self, gid):
         res = set()
         child_map = self.group_children
+
         def do_group(gid):
             res.add(gid)
             kids = child_map.get(gid, [])
             for kid in kids:
                 if kid not in res:
                     do_group(kid)
+
         do_group(gid)
         return res
 
     def subclasses(self, clsid):
         res = set()
         self.get_class_children()
+
         def do_class(cid):
             res.add(cid)
             for ccid in self.class_children.get(cid, set()):
                 if ccid not in res:
                     do_class(ccid)
+
         do_class(clsid)
         return res
 
@@ -872,36 +943,42 @@ class MetaContext(BaseModel):
 
 NameWithId.update_forward_refs()
 
+
 def contains_deleted_fn(deleted_objects, deleted_classes):
-    return lambda obj_id: (obj_id in deleted_objects) or (oid_class(obj_id) in deleted_classes)
+    return lambda obj_id: (obj_id in deleted_objects) or (
+        oid_class(obj_id) in deleted_classes
+    )
+
 
 class SecondaryIndex(BaseModel):
     name: str
     unique: bool = False
     fields: List[str]
-    
+
+
 def make_secondary_indices(collection_name, *field_lists):
     res = []
     for fields in field_lists:
-        f_name = '_'.join(fields)
-        name = f'{collection_name}_{f_name}'  
+        f_name = "_".join(fields)
+        name = f"{collection_name}_{f_name}"
         res.append(SecondaryIndex(name=name, fields=fields))
     return res
 
+
 class Associated(BaseModel):
-    kind = ''
-    assoc_id: str = Field(..., description='id of association')
-    object_id: str = Field(..., description='id of object associated')
+    kind = ""
+    assoc_id: str = Field(..., description="id of association")
+    object_id: str = Field(..., description="id of object associated")
 
     @classmethod
     def secondary_indices(cls, name):
-        return make_secondary_indices(name,['assoc_id'], ['object_id'])
+        return make_secondary_indices(name, ["assoc_id"], ["object_id"])
 
     def contains_deleted(self, deleted_objects, deleted_classes):
         return contains_deleted_fn(deleted_objects, deleted_classes)(self.object_id)
 
     def hash_string(self):
-        return f'{self.assoc_id}:{self.object_id}'
+        return f"{self.assoc_id}:{self.object_id}"
 
     def as_tuple(self):
         return tuple(self.dict().items())
@@ -916,7 +993,7 @@ class Associated(BaseModel):
 
     def without_kind(self):
         data = self.dict()
-        data.pop('kind', None)
+        data.pop("kind", None)
         return data
 
     def __hash__(self):
@@ -927,10 +1004,20 @@ class Associated(BaseModel):
             dbi.meta_insert(self.dict())
 
 
-
 class Related(Associated):
-    kind='related'
-    subject_id: str = Field(..., description='subject of relationship')
+    kind = "related"
+    subject_id: str = Field(..., description="subject of relationship")
+
+    def hash_string(self):
+        return f"{self.assoc_id}:{self.object_id}:{self.subject_id}"
+
+    def __hash__(self):
+        return hash(self.hash_string())
+
+    def __eq__(self, other):
+        if self.__class__ != other.__class__:
+            return False
+        return self.hash_string() == other.hash_string()
 
     @classmethod
     def make(cls, subject_id, role_id, object_id):
@@ -938,45 +1025,47 @@ class Related(Associated):
 
     @classmethod
     def secondary_indices(cls, name):
-        return make_secondary_indices(name,
-                                      ['assoc_id'],
-                                      ['object_id'],
-                                      ['subject_id'],
-                                      ['assoc_id', 'object_id'],
-                                      ['assoc_id', 'subject_id'])
+        return make_secondary_indices(
+            name,
+            ["assoc_id"],
+            ["object_id"],
+            ["subject_id"],
+            ["assoc_id", "object_id"],
+            ["assoc_id", "subject_id"],
+        )
 
     @property
     def role_id(self):
         return self.assoc_id
-    
+
     def contains_object(self, object_id):
         return self.object_id == object_id or self.subject_id == object_id
-    
+
     def contains_class(self, class_id):
-        return oid_class(self.object_id) == class_id or oid_class(self.subject_id) == class_id
-    
+        return (
+            oid_class(self.object_id) == class_id
+            or oid_class(self.subject_id) == class_id
+        )
 
     def contains_deleted(self, deleted_objects, deleted_classes):
-        return any([self.contains_object(obj) for obj in deleted_objects]) or any([self.contains_class(cls) for cls in deleted_classes])
+        return any([self.contains_object(obj) for obj in deleted_objects]) or any(
+            [self.contains_class(cls) for cls in deleted_classes]
+        )
 
     def hash_string(self):
-        return f'{super().hash_string()}:{self.subject_id}'
-
-
+        return f"{super().hash_string()}:{self.subject_id}"
 
 
 def app_attr(name, type_, modifiable=True, **kwargs):
     perms = AppPermissions()
-    perms.modifiable=modifiable
+    perms.modifiable = modifiable
     return MetaAttribute(name=name, type=type_, permissions=perms, **kwargs)
 
 
-
-
 class ClassComponent(QueryComponent):
-    kind = 'class'
-    cls_name: str = Field(..., description='name of class')
-    include_subclasses: bool  = True
+    kind = "class"
+    cls_name: str = Field(..., description="name of class")
+    include_subclasses: bool = True
     positive: bool = True
 
     @classmethod
@@ -984,31 +1073,27 @@ class ClassComponent(QueryComponent):
         name, rest = first_kv(d)
         return cls(cls_name=name, **rest)
 
-
     def dict_contents(self):
         d = self.dict()
-        name = d.pop('cls_name')
-        return {name : d}
+        name = d.pop("cls_name")
+        return {name: d}
 
     def negated(self):
         return self.__class__(
             cls_name=self.cls_name,
-            include_subclasses = self.include_subclasses,
-            positive = not self.positive
+            include_subclasses=self.include_subclasses,
+            positive=not self.positive,
         )
 
 
 def reverse_application(application):
-    reversed = dict(
-        all='none',
-        none='any',
-        any='none'
-    )
+    reversed = dict(all="none", none="any", any="none")
     return reversed[application]
 
+
 class AssociatedComponent(QueryComponent):
-    kind = ''
-    names: List[str] = Field(..., description='name of association meta bojects')
+    kind = ""
+    names: List[str] = Field(..., description="name of association meta bojects")
     application: AssocsRequired = AssocsRequired.all
 
     @classmethod
@@ -1020,30 +1105,35 @@ class AssociatedComponent(QueryComponent):
         return {self.application.value: self.names}
 
     def negated(self):
-        return self.__class__(groups=self.names,
-                   application=reverse_application(self.application))
+        return self.__class__(
+            groups=self.names, application=reverse_application(self.application)
+        )
+
 
 class TagsComponent(AssociatedComponent):
-    kind = 'tags'
-
+    kind = "tags"
 
 
 class GroupsComponent(AssociatedComponent):
-    kind = 'groups'
+    kind = "groups"
     include_subgroups: bool = True
 
     def negated(self):
-        return self.__class__(names=self.names,
-                              include_subgroups=self.include_subgroups,
-                   application=reverse_application(self.application))
+        return self.__class__(
+            names=self.names,
+            include_subgroups=self.include_subgroups,
+            application=reverse_application(self.application),
+        )
+
 
 def assoc_component_from_dict(d):
     pass
 
+
 class AttributeComponent(QueryComponent):
-    kind = 'attribute'
-    attr_name: str = 'createdAt'
-    operate: AttributeOperation = '>'
+    kind = "attribute"
+    attr_name: str = "createdAt"
+    operate: AttributeOperation = ">"
     value: Any
 
     @classmethod
@@ -1057,22 +1147,20 @@ class AttributeComponent(QueryComponent):
 
     def negated(self):
         reverse_op = {
-            '>=': '<',
-            '>': '<=',
-            '<=': '>',
-            '<': '>=',
-            '==': '!=',
-            '!=': '=='
+            ">=": "<",
+            ">": "<=",
+            "<=": ">",
+            "<": ">=",
+            "==": "!=",
+            "!=": "==",
         }
         return self.__class__(
-            attr_name = self.attr_name,
-            operate = reverse_op[self.operate],
-            value = self.value
+            attr_name=self.attr_name, operate=reverse_op[self.operate], value=self.value
         )
 
     def value_like(self, val, criteria):
         # TODO use regex instead?
-        star_sep = criteria.split('*')
+        star_sep = criteria.split("*")
         for part in star_sep:
             rest = after(part, val)
             if rest == val:
@@ -1086,21 +1174,21 @@ class AttributeComponent(QueryComponent):
 
     def obj_eval(self):
         # TODO fix to include string like functions and range and clean up
-        if self.operate == '>=':
+        if self.operate == ">=":
             return lambda obj: obj[self.attr_name] >= self.value
-        if self.operate == '>':
+        if self.operate == ">":
             return lambda obj: obj[self.attr_name] > self.value
-        if self.operate == '<=':
+        if self.operate == "<=":
             return lambda obj: obj[self.attr_name] <= self.value
-        if self.operate == '<':
+        if self.operate == "<":
             return lambda obj: obj[self.attr_name] < self.value
-        if self.operate == '==':
+        if self.operate == "==":
             return lambda obj: obj[self.attr_name] == self.value
-        if self.operate == '!=':
+        if self.operate == "!=":
             return lambda obj: obj[self.attr_name] != self.value
-        if self.operate == 'like':
-            return partial(self.eval_like, criteria= self.value)
-        if self.operate == 'not_like':
+        if self.operate == "like":
+            return partial(self.eval_like, criteria=self.value)
+        if self.operate == "not_like":
             return lambda obj: not self.eval_like(obj, self.value)
 
     def propval(self):
@@ -1111,15 +1199,16 @@ class InComponent(BaseModel):
     object_ids: List[str]
     negated: bool = False
 
+
 class RelatedTo(QueryComponent):
-    kind = 'related'
-    obj_id: str = Field(..., description='object objects are related to')
+    kind = "related"
+    obj_id: str = Field(..., description="object objects are related to")
     role: Optional[str] = None
     negated: bool = False
 
     def dict_contents(self):
         d = self.dict()
-        role = d.pop('role')
+        role = d.pop("role")
         return {role: d}
 
     @classmethod
@@ -1127,17 +1216,16 @@ class RelatedTo(QueryComponent):
         role, rest = first_kv(d)
         return cls(role=role, **rest)
 
+
 class CompositeQuery(QueryComponent):
-    kind = ''
+    kind = ""
     components: List[QueryComponent] = []
     negated: bool = False
 
     def dict_contents(self):
         comps = [c.to_dict() for c in self.components]
-        return dict(
-            components = comps,
-            negated = self.negated
-        )
+        return dict(components=comps, negated=self.negated)
+
     def add_component(self, a_component: QueryComponent):
         self.components.append(a_component)
 
@@ -1145,27 +1233,31 @@ class CompositeQuery(QueryComponent):
         for component in self.components:
             component.simplify()
 
+
 def qc_dict_to_component(d):
     kind, data = first_kv(d)
-    if kind in ('and', 'or'):
-        cls = AndQuery if (kind == 'and') else OrQuery
-        d_comps = data.pop('components')
+    if kind in ("and", "or"):
+        cls = AndQuery if (kind == "and") else OrQuery
+        d_comps = data.pop("components")
         components = [qc_dict_to_component(c) for c in d_comps]
         return cls(components=components, **d)
-    elif kind == 'class':
+    elif kind == "class":
         return ClassComponent.from_dict(data)
-    elif kind == 'attribute':
+    elif kind == "attribute":
         return AttributeComponent.from_dict(data)
-    elif kind == 'tags':
+    elif kind == "tags":
         return TagsComponent.from_dict(data)
-    elif kind == 'groups':
+    elif kind == "groups":
         return GroupsComponent.from_dict(data)
-    elif kind == 'related':
+    elif kind == "related":
         return RelatedTo.from_dict(data)
     elif kind:
-        raise Exception(f'no handler for {kind} query component')
+        raise Exception(f"no handler for {kind} query component")
+
+
 class AndQuery(CompositeQuery):
-    kind = 'and'
+    kind = "and"
+
     def simplify(self):
         super().simplify()
         new_components = []
@@ -1178,7 +1270,8 @@ class AndQuery(CompositeQuery):
 
 
 class OrQuery(CompositeQuery):
-    kind = 'or'
+    kind = "or"
+
     def simplify(self):
         super().simplify()
         new_components = []
@@ -1204,17 +1297,19 @@ class WorkingContext(MetaContext):
                 res |= {getattr(a, field) for a in assoc}
             return res
 
+        return (
+            objects(self.tagged, "object_id")
+            | objects(self.grouped, "object_id")
+            | objects(self.related, "object_id", "subject_id")
+        )
 
-        return  (objects(self.tagged, 'object_id')  |
-                 objects(self.grouped, 'object_id') |
-                 objects(self.related, 'object_id', 'subject_id'))
     @classmethod
     def from_metadata(cls, metadata: MetaContext):
         data = {k: getattr(metadata, k) for k in metadata.dict()}
         return cls(**data)
 
     @classmethod
-    def from_schema(cls, schema:Schema):
+    def from_schema(cls, schema: Schema):
         return cls.from_metadata(MetaContext.from_schema(schema))
 
     def add(self, object: NameWithId):
@@ -1222,8 +1317,8 @@ class WorkingContext(MetaContext):
         if self.persist_to:
             self.persist_to.meta_insert(object)
 
-    def ensure_metas(self, num, meta_class:NameWithId):
-        kind = meta_class.__fields__['kind'].default
+    def ensure_metas(self, num, meta_class: NameWithId):
+        kind = meta_class.__fields__["kind"].default
         existing = list(getattr(self, kind).by_id.values())
         for _ in range(len(existing), num):
             self.add(meta_class.create_random())
@@ -1259,9 +1354,9 @@ class WorkingContext(MetaContext):
         self.ensure_assocs(num_assocs, self.random_grouped, self.grouped)
         self.ensure_assocs(num_assocs, self.random_related, self.related)
 
-    def random_class_instance(self, cls:MetaClass):
+    def random_class_instance(self, cls: MetaClass):
         "creates and returns a raandomly generated instances of the cls"
-        instance =  cls.random_instance()
+        instance = cls.random_instance()
         return instance
 
     def random_instance(self):
@@ -1285,67 +1380,61 @@ class WorkingContext(MetaContext):
         return random.choice(list(self.roles.by_id.values()))
 
     def random_kind(self, kind):
-        return getattr(self, f'random_{kind}')
+        return getattr(self, f"random_{kind}")
 
     def distinct_pair(self, kind, constraint=None):
         all_available = self.all_of_kind(kind)
-        if constraint: # TODO fix this
+        if constraint:  # TODO fix this
             all_available = [a for a in all_available if constraint(a)]
         first = random.choice(all_available)
         rest = [a for a in all_available if a.id != first.id]
         return first, random.choice(rest)
 
     def random_tagged(self, tag_id=None, obj_id=None):
-        role_id = self.roles.name_to_id('tag_applies')
+        role_id = self.roles.name_to_id("tag_applies")
         assoc = Related(
-            assoc_id= role_id,
-            object_id= obj_id or self.random_instance()['id'],
-            subject_id= tag_id or self.random_tag().id
+            assoc_id=role_id,
+            object_id=obj_id or self.random_instance()["id"],
+            subject_id=tag_id or self.random_tag().id,
         )
         assoc.persist(self.persist_to)
         return assoc
-
 
     def random_grouped(self, group_id=None, obj_id=None):
-        role_id = self.roles.name_to_id('group_contains')
-        assoc =  Related(
-            assoc_id= role_id,
-            object_id= obj_id or self.random_instance()['id'],
-            subject_id= group_id or self.random_group().id
+        role_id = self.roles.name_to_id("group_contains")
+        assoc = Related(
+            assoc_id=role_id,
+            object_id=obj_id or self.random_instance()["id"],
+            subject_id=group_id or self.random_group().id,
         )
         assoc.persist(self.persist_to)
         return assoc
 
-    def random_related(self, role_id=None, object_id=None,
-                       subject_id=None):
-        subject = subject_id or self.random_instance()['id']
-        object = object_id or self.random_instance()['id']
+    def random_related(self, role_id=None, object_id=None, subject_id=None):
+        subject = subject_id or self.random_instance()["id"]
+        object = object_id or self.random_instance()["id"]
         role = role_id or self.random_role().id
-        assoc =  Related(
-            assoc_id = role,
-            object_id = object,
-            subject_id = subject
-        )
+        assoc = Related(assoc_id=role, object_id=object, subject_id=subject)
         assoc.persist(self.persist_to)
         return assoc
 
     def all_of_kind(self, kind):
-        if kind == 'objects':
+        if kind == "objects":
             return self.instances
-        elif kind == 'tagged':
+        elif kind == "tagged":
             return self.tagged
-        elif kind == 'grouped':
+        elif kind == "grouped":
             return self.grouped
-        elif kind == 'related':
+        elif kind == "related":
             return self.related
         else:
             return list(getattr(self, kind).by_id.values())
 
 
-
 class Database(BaseModel):
-    id: str = Field(default_factory=lambda: str(
-        make_oid('')), description='primary id ')
+    id: str = Field(
+        default_factory=lambda: str(make_oid("")), description="primary id "
+    )
     name: Optional[str]
     tenancy: str
     host: Optional[str]
@@ -1353,17 +1442,17 @@ class Database(BaseModel):
     args: dict = {}
 
 
-
-
-
-def cls_data(name, superclass, *attributes, description='', abstract=False,
-             **field_values):
+def cls_data(
+    name, superclass, *attributes, description="", abstract=False, **field_values
+):
     pass
+
 
 class MetaChanges(BaseModel):
     timestamp: float
     tenant_id: str
     changes: dict
+
 
 kind_map = dict(
     classes=MetaClass,
@@ -1380,6 +1469,7 @@ kind_map = dict(
     changes=MetaChanges,
 )
 
+
 def as_meta(kind, data):
     if isinstance(data, BaseModel):
         return data
@@ -1388,34 +1478,36 @@ def as_meta(kind, data):
         data = dict(data)
     return meta_cls(**data)
 
+
 def create_new(kind):
     cls = kind_map[kind]
     return cls.create_random()
 
-secondary_indices = dict(
-    related = Related.secondary_indices('related')
+
+secondary_indices = dict(related=Related.secondary_indices("related"))
+
+root = MetaClass(
+    id="r00t",
+    name="PersistentObject",
+    superclass="",
+    attributes=[MetaAttribute(name="id", type="uuid", permissions=SystemPermissions())],
+    description="root supperclass",
+    permissions=SystemPermissions(),
+    is_abstract=True,
 )
-
-root = MetaClass(id='r00t', name='PersistentObject', superclass='',
-                 attributes=[MetaAttribute(
-                     name='id', type='uuid', permissions=SystemPermissions())],
-                 description='root supperclass',
-                 permissions=SystemPermissions(),
-                 is_abstract=True)
-
 
 
 core_schema = Schema(
-    name='uop_core',
-    classes = [root,
-               sys_class('DescribedComponent', 'PersistentObject',
-               app_attr('createdAt', 'epoch', modifiable=False),
-                         app_attr('description', 'string'),
-                         abstract=True,
-                         description='root of all described content'),
-               ]
-
+    name="uop_core",
+    classes=[
+        root,
+        sys_class(
+            "DescribedComponent",
+            "PersistentObject",
+            app_attr("createdAt", "epoch", modifiable=False),
+            app_attr("description", "string"),
+            abstract=True,
+            description="root of all described content",
+        ),
+    ],
 )
-
-
-
