@@ -1,22 +1,14 @@
 [project]
-name = "sjasoft-uopmeta"
+name = "uop-meta"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Samantha Atkins", email = "samantha@sjasoft.com" }
-]
+authors = [{ name = "Samantha Atkins", email = "samantha@sjasoft.com" }]
 requires-python = ">=3.12"
-dependencies = [
-    "pydantic==1.10.7",
-    "sjasoft-utils>=0.1.0",
-]
-
-[project.scripts]
-sjasoft-uopmeta = "sjasoft.uopmeta:main"
+dependencies = ["pydantic==1.10.7", "sjasoft-utils>=0.1.0"]
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -27,6 +19,4 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [dependency-groups]
-dev = [
-    "pytest>=8.4.2",
-]
+dev = ["pytest>=8.4.2"]

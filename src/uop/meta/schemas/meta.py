@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 from typing import List, Optional, Any, Dict, ClassVar
 from pydantic import Field, root_validator
-from sjasoft.uopmeta.oid import oid_sep, make_oid, oid_class
-from sjasoft.uopmeta.attr_info import attribute_types, meta_kinds
-from sjasoft.uopmeta.schemas.enums import AssocsRequired, AttributeOperation
+from uop.meta.oid import oid_sep, make_oid, oid_class
+from uop.meta.attr_info import attribute_types, meta_kinds
+from uop.meta.schemas.enums import AssocsRequired, AttributeOperation
 from sjasoft.utils import index
 from sjasoft.utils.dicts import first_kv, DictObject
 from sjasoft.utils.string import after

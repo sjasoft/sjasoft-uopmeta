@@ -1,5 +1,5 @@
 import random, time
-from sjasoft.uopmeta import oid
+from uop.meta import oid
 from sjasoft.utils import index, date_time
 import datetime
 
